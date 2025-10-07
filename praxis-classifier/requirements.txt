@@ -1,0 +1,11 @@
+langdetect
+langcodes
+fastapi
+httpx
+transformers
+openai
+dotenv
+re
+json
+python-multipart
+uvicorn

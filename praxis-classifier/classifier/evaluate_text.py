@@ -1,6 +1,6 @@
 import re
 import langcodes
-from textblob import TextBlob
+from langdetect import detect
 from transformers import pipeline
 
 _toxicity_pipeline = None
@@ -34,8 +34,7 @@ def evaluate_text(text: str, rules: list[dict]) -> dict:
 
         if name == "language":
             try:
-                blob = TextBlob(text)
-                detected_code = blob.detect_language()
+                detected_code = detect(text)
 
                 # Normalize the expected language using langcodes
                 if value in ["English", "French", "Spanish"]:
@@ -88,14 +87,3 @@ def evaluate_text(text: str, rules: list[dict]) -> dict:
 
     results["weighted_score"] = round(total_score, 2)
     return results
-
-
-if __name__ == "__main__":
-    rules = [
-        {"name": "language", "value": "English", "weight": 0.4},
-        {"name": "min_length", "value": 10, "weight": 0.3},
-        {"name": "toxicity", "value": "low", "weight": 0.3},
-    ]
-
-    sample_text = "My name is Aderemi Ademola, i'm a backend developer, i speak english and i'm  very well-versed in it, "
-    print(evaluate_text(sample_text, rules))

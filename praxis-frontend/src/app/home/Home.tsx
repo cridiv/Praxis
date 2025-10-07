@@ -169,7 +169,7 @@ export default function HeroSection() {
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 pt-4 justify-center">
-              <button onClick={handleUploadClick} className="group px-8 py-4 bg-black hover:bg-blue-600 text-white font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105">
+              <button onClick={handleUploadClick} className="group px-8 py-4 bg-black hover:bg-gray-600 text-white font-semibold rounded-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/30 hover:shadow-xl hover:shadow-blue-500/40 hover:scale-105">
                 <Upload className="w-5 h-5 group-hover:scale-110 transition-transform" />
                 Upload Your Dataset
               </button>

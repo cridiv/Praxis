@@ -67,10 +67,3 @@ def normalize_rules(rules):
             r["weight"] = round(r["weight"] / total_weight, 2)
 
     return normalized
-
-
-if __name__ == "__main__":
-    description = "Text must be in Chinese, at least 500 words long, and contain little toxic language."
-    rules = extract_rules(description)
-    clean_rules = normalize_rules(rules)
-    print(json.dumps(clean_rules, indent=2))
