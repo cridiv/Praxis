@@ -1,5 +1,7 @@
 from fastapi import APIRouter, UploadFile, File
 from services.read_files import process_zip_file
+from rules.extract_rule import extract_rules
+from rules.normalize_rules import normalize_rules
 
 router = APIRouter()
 
@@ -18,3 +20,11 @@ async def classify_zip(file: UploadFile = File(...)):
     print("Classified Results:", result)
 
     return result
+
+
+@router.post("/description")
+async def process_description(description: str):
+    print("Processing description:", description)
+    extracted_rules = extract_rules(description)
+    normalized_rules = normalize_rules(extracted_rules)
+    return {"extracted_rules": extracted_rules, "normalized_rules": normalized_rules}

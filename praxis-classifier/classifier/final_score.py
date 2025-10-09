@@ -1,7 +1,3 @@
-from classifier.evaluate_text import evaluate_text
-from classifier.ml_classifier import classify_text
-
-
 def normalize_score(score: float) -> float:
     score = max(0.0, min(score, 1.0))
     return round(score, 2)

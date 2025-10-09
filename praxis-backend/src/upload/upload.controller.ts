@@ -24,7 +24,19 @@ export class UploadController {
                 } 
             },
         );
-        console.log("response: ", response.data)
+        console.log("response:", JSON.stringify(response.data, null, 2));
+        return response.data;
+    }
+
+    @Post('description')
+    async processDescription(@UploadedFile() description: string) {
+        console.log("Processing description:", description);
+        const response = await axios.post(
+            'http://localhost:8000/api/description',
+            { description },
+            { headers: { 'Content-Type': 'application/json' } }
+        );
+        console.log("response:", JSON.stringify(response.data, null, 2));
         return response.data;
     }
 }
