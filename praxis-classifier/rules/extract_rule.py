@@ -1,14 +1,14 @@
 import os
+import re
 import json
-from openai import OpenAI
+from google import genai
 from dotenv import load_dotenv
 
 load_dotenv()
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 
 def extract_rules(description: str):
-
     system_prompt = """
     You are a rule extraction engine for Sage (a data quality evaluator).
     Given a description, you must extract structured JSON rules.
@@ -27,16 +27,18 @@ def extract_rules(description: str):
     ]
     """
 
-    response = client.chat.completions.create(
-        model="gpt-4.1-mini",
-        messages=[
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": description},
+    response = client.models.generate_content(
+        model="models/gemini-2.5-flash",
+        contents=[
+            {"role": "user", "parts": [{"text": system_prompt + "\n\n" + description}]}
         ],
-        temperature=0,
     )
 
-    content = response.choices[0].message.content.strip()
+    content = response.text.strip()
+
+    content = re.sub(
+        r"^```(?:json)?|```$", "", content.strip(), flags=re.MULTILINE
+    ).strip()
 
     try:
         rules = json.loads(content)

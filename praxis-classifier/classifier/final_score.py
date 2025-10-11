@@ -16,7 +16,15 @@ def label_score(score: float) -> str:
 
 def fuse_results(rule_results: dict, ml_results: dict, labels: list[str]) -> dict:
     rule_score = rule_results.get("weighted_score", 0.0)
-    ml_score = sum(ml_results.values()) / len(ml_results) if ml_results else 0.0
+    ml_score = (
+        sum(
+            v if isinstance(v, (int, float)) else v.get("score", 0.0)
+            for v in ml_results.values()
+        )
+        / len(ml_results)
+        if ml_results
+        else 0.0
+    )
 
     combined_raw = (rule_score + ml_score) / 2
     normalized = normalize_score(combined_raw)

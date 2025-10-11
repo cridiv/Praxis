@@ -105,45 +105,47 @@ export default function UploadModal({ isOpen, onClose }: UploadModalProps) {
     }
   };
 
-  const handleUpload = async () => {
-    if (selectedFiles.length === 0) return;
+const handleUpload = async () => {
+  if (selectedFiles.length === 0) {
+    alert('Please select at least one dataset file.');
+    return;
+  }
 
-    setIsUploading(true);
+  if (!description.trim()) {
+    alert('Please add a dataset description.');
+    return;
+  }
 
-    if (description.trim()) {
-      await handleDescription();
+  setIsUploading(true);
+
+  try {
+    const formData = new FormData();
+    formData.append('description', description);
+    formData.append('file', selectedFiles[0]); 
+    const response = await fetch('http://localhost:5000/upload', {
+      method: 'POST',
+      body: formData,
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log('✅ Upload successful:', result);
+      alert('Upload successful!');
+    } else {
+      const error = await response.text();
+      console.error('❌ Upload failed:', error);
+      alert('Upload failed.');
     }
-
-    for (const file of selectedFiles) {
-      try {
-        const formData = new FormData();
-        formData.append('file', file);
-        formData.append('description', description);
-
-        const response = await fetch('http://localhost:5000/upload', {
-          method: 'POST',
-          body: formData,
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log('Upload successful:', result);
-        }
-      } catch (error) {
-        console.error('Upload error:', error);
-      }
-    }
-
+  } catch (error) {
+    console.error('⚠️ Upload error:', error);
+  } finally {
     setIsUploading(false);
     setSelectedFiles([]);
     setDescription('');
-    
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-    
+    if (fileInputRef.current) fileInputRef.current.value = '';
     onClose();
-  };
+  }
+};
 
   const removeSelectedFile = (indexToRemove: number) => {
     setSelectedFiles(prev => prev.filter((_, index) => index !== indexToRemove));

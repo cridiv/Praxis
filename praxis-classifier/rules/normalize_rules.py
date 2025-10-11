@@ -1,6 +1,5 @@
 import re
 import json
-from extract_rule import extract_rules
 
 
 def normalize_rules(rules):
@@ -20,6 +19,8 @@ def normalize_rules(rules):
         "min_words": "min_length",
         "length": "min_length",
         "min_length": "min_length",
+        "excluded_language": "excluded_language",
+        "disallowed_language": "excluded_language",
         "toxicity": "toxicity",
         "toxic": "toxicity",
     }
@@ -40,6 +41,8 @@ def normalize_rules(rules):
             value = str(value).capitalize()
         elif name == "min_length":
             value = int(re.findall(r"\d+", str(value))[0]) if value else 0
+        elif name == "excluded_language":
+            value = str(value).capitalize()
         elif name == "toxicity":
             val = str(value).lower()
             if "no" in val or "low" in val:
@@ -55,10 +58,14 @@ def normalize_rules(rules):
             weight = 0.0
 
         normalized.append({"name": name, "value": value, "weight": float(weight)})
+    if not normalized:
+        print("No valid rules found during normalization.")
+        return []
 
     total_weight = sum(r["weight"] for r in normalized)
     if total_weight == 0:
-        # Assign equal weights if all missing/invalid
+        if len(normalized) == 0:
+            return []
         equal_weight = 1.0 / len(normalized)
         for r in normalized:
             r["weight"] = round(equal_weight, 2)
