@@ -1,53 +1,68 @@
-from fastapi import APIRouter, UploadFile, File, Form
-from services.process_routes import process_description, DescriptionInput
-from services.process_routes import classify_zip as process_files
-from classifier.final_score import fuse_results
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
+from services.process_routes import (
+    evaluate_description,
+    evaluate_files,
+    combine_results,
+)
 from starlette.responses import JSONResponse
 import asyncio
+import traceback
 
 router = APIRouter()
 
 
 @router.post("/evaluate")
 async def evaluate(description: str = Form(...), files: UploadFile = File(...)):
-    desc_task = asyncio.create_task(
-        asyncio.to_thread(
-            process_description, DescriptionInput(description=description)
+    """
+    Handles concurrent evaluation of both description and ZIP dataset,
+    then fuses results into a unified response with robust error handling.
+    """
+    print("/evaluate route has been hit")
+
+    try:
+        # Read file safely
+        try:
+            file_bytes = await files.read()
+            if not file_bytes:
+                raise ValueError("Uploaded file is empty or unreadable.")
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"File read error: {e}")
+
+        # Run description and file evaluations concurrently
+        desc_task = asyncio.to_thread(evaluate_description, description)
+        file_task = asyncio.to_thread(evaluate_files, file_bytes)
+
+        try:
+            desc_result, file_result = await asyncio.gather(desc_task, file_task)
+        except Exception as e:
+            traceback.print_exc()
+            raise HTTPException(
+                status_code=500, detail=f"Error in evaluation tasks: {str(e)}"
+            )
+
+        # Ensure results are valid dicts
+        if not isinstance(desc_result, dict):
+            raise TypeError(
+                "Invalid response from evaluate_description() — expected dict."
+            )
+        if not isinstance(file_result, dict):
+            raise TypeError("Invalid response from evaluate_files() — expected dict.")
+
+        # Combine results safely
+        try:
+            final_output = combine_results(desc_result, file_result)
+        except Exception as e:
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=f"Fusion error: {str(e)}")
+        return JSONResponse(final_output)
+
+    except HTTPException as e:
+        # Pass-through FastAPI-style errors
+        raise e
+
+    except Exception as e:
+        # Fallback for unexpected issues
+        traceback.print_exc()
+        raise HTTPException(
+            status_code=500, detail=f"Unexpected server error: {str(e)}"
         )
-    )
-
-    file_bytes = await files.read()
-    file_task = asyncio.create_task(asyncio.to_thread(process_files, file_bytes))
-
-    desc_result, file_result = await asyncio.gather(desc_task, file_task)
-
-    # ✅ unwrap JSONResponse if returned
-    if isinstance(desc_result, JSONResponse):
-        desc_result = desc_result.body.decode("utf-8")
-        import json
-
-        desc_result = json.loads(desc_result)
-    if isinstance(file_result, JSONResponse):
-        file_result = file_result.body.decode("utf-8")
-        import json
-
-        file_result = json.loads(file_result)
-
-    # now both are dicts
-    final_score = fuse_results(
-        desc_result, file_result, labels=["toxicity", "language", "length"]
-    )
-
-    desc_score = desc_result.get("score", 0.0)
-    dataset_score = file_result.get("dataset_score", 0.0)
-
-    unified_score = round((0.6 * dataset_score + 0.4 * desc_score), 2)
-
-    print("Unified Score:", unified_score)
-    print("Final Fused Score:", final_score)
-    return {
-        "description": desc_result,
-        "files": file_result,
-        "final": final_score,
-        "unified_score": unified_score,
-    }

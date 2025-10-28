@@ -11,7 +11,9 @@ def get_toxicity_pipeline():
     """Lazy load the Hugging Face pipeline only once."""
     global _toxicity_pipeline
     if _toxicity_pipeline is None:
-        _toxicity_pipeline = pipeline("text-classification", model="unitary/toxic-bert")
+        _toxicity_pipeline = pipeline(
+            "text-classification", model="typeform/distilbert-base-uncased-mnli"
+        )
     return _toxicity_pipeline
 
 

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { Upload, BookOpen, Zap } from 'lucide-react';
+import { Upload, BookOpen } from 'lucide-react';
 
 export default function HeroSection() {
   const router = useRouter();
@@ -56,8 +56,7 @@ export default function HeroSection() {
       }
     }
 
-    interface ParticleArray extends Array<Particle> {}
-    const particles: ParticleArray = [];
+    const particles: Particle[] = [];
     const particleCount = 120;
     const connectionDistance = 180;
     

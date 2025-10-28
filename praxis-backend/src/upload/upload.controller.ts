@@ -9,7 +9,6 @@ export class UploadController {
   @Post()
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request) {
-    // ✅ Access form fields from req.body (not @Body)
     const description = req.body.description;
 
     if (!file) return { error: 'No file uploaded' };
@@ -23,7 +22,7 @@ export class UploadController {
       filename: file.originalname,
       contentType: file.mimetype,
     });
-    formData.append('description', description); // ✅ Properly appended
+    formData.append('description', description);
 
     const response = await axios.post('http://localhost:8000/api/evaluate', formData, {
       headers: formData.getHeaders(),

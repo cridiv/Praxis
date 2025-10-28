@@ -34,8 +34,8 @@ def get_zero_shot_pipeline():
         print("🔄 Loading lightweight zero-shot model...")
         _zero_shot = pipeline(
             "zero-shot-classification",
-            model="facebook/bart-large-mnli",
-            device=-1,  # CPU; change if you set up GPU device indexing
+            model="typeform/distilbert-base-uncased-mnli",
+            device=1,
         )
     return _zero_shot
 
@@ -65,7 +65,7 @@ def classify_text(
 
         # result contains keys like "labels" and "scores"
         scores = {
-            label: float(score)
+            label: round(float(score), 2)
             for label, score in zip(result["labels"], result["scores"])
         }
 

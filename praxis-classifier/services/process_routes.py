@@ -1,19 +1,44 @@
-from services.read_files import process_zip_file
-from rules.extract_rule import extract_rules
-from rules.normalize_rules import normalize_rules
-from classifier.evaluate_rules import evaluate_rules
 from classifier.ml_classifier import classify_text as ml_classifier
 from classifier.final_score import fuse_results
-from pydantic import BaseModel
-from starlette.responses import JSONResponse
+from rules.extract_rule import extract_rules
+from classifier.evaluate_rules import evaluate_rules
+from services.read_files import process_zip_file
 
 
-class DescriptionInput(BaseModel):
-    description: str
+def evaluate_description(description: str) -> dict:
+    """Evaluate description text using dynamic rules and ML classifier aligned with extracted rules."""
+    extracted_rules = extract_rules(description)
+    rule_results = evaluate_rules(extracted_rules, description)
+
+    # ✅ Dynamically derive ML candidate labels from extracted rules
+    candidate_labels = [rule["name"].lower() for rule in extracted_rules if "name" in rule]
+
+    # 🧠 Only classify using the rules actually relevant to this text
+    ml_results = ml_classifier(description, candidate_labels)
+
+    # Fuse both results
+    final_result = fuse_results(rule_results, ml_results, labels=candidate_labels)
+
+    rule_score = rule_results.get("score", 0.0)
+    ml_score = ml_results.get("confidence", 0.0)
+    fused_score = final_result.get("combined_score", (rule_score + ml_score) / 2)
+
+    print("Extracted Rules:", extracted_rules)
+    print("Rule Results:", rule_results)
+    print("ML Results:", ml_results)
+    print("Final Fused Result:", final_result)
+
+    return {
+        "extracted_rules": extracted_rules,
+        "rule_results": rule_results,
+        "ml_results": ml_results,
+        "final_result": final_result,
+        "score": min(max(fused_score, 0.0), 1.0),  # normalized 0–1
+    }
 
 
-def classify_zip(file_bytes: bytes):
-    print("Classifying ZIP file...")
+def evaluate_files(file_bytes: bytes) -> dict:
+    """Evaluate uploaded ZIP dataset using static or extracted rules."""
     rules = [
         {"name": "language", "value": "English", "weight": 0.4},
         {"name": "min_length", "value": 100, "weight": 0.3},
@@ -21,33 +46,39 @@ def classify_zip(file_bytes: bytes):
     ]
 
     result = process_zip_file(file_bytes, rules)
-    print("Classified Results:", result)
+    dataset_score = result.get("dataset_score", 0.0)
 
-    return result
+    return {
+        "file_results": result,
+        "dataset_score": min(max(dataset_score, 0.0), 1.0),  # normalize 0–1
+    }
 
 
-def process_description(data: DescriptionInput):
-    description = data.description
-    print("Processing description:", description)
+def combine_results(desc_result: dict, file_result: dict) -> dict:
+    """Fuse description + dataset scores into a unified weighted output."""
+    desc_score = round(desc_result.get("score", 0.0), 3)
+    dataset_score = round(file_result.get("dataset_score", 0.0), 3)
 
-    extracted_rules = extract_rules(description)
-    normalized_rules = normalize_rules(extracted_rules)
-    print("Extracted Rules:", extracted_rules)
-    rule_results = evaluate_rules(normalized_rules, description)
+    # Weighted combination (dataset 60%, description 40%)
+    unified_score = round((0.6 * dataset_score + 0.4 * desc_score), 3)
 
-    candidate_labels = [
-        "toxic",
-        "non-toxic",
-        "english",
-        "french",
-        "german",
-        "short",
-        "long",
-    ]
+    if unified_score >= 0.85:
+        label = "Excellent"
+    elif unified_score >= 0.65:
+        label = "Good"
+    elif unified_score >= 0.45:
+        label = "Moderate"
+    elif unified_score >= 0.25:
+        label = "Low"
+    else:
+        label = "Very Low"
 
-    ml_results = ml_classifier(description, candidate_labels)
-    print("Ml_Results: ", ml_results)
+    output = {
+        "description_score": desc_score,
+        "dataset_score": dataset_score,
+        "unified_score": unified_score,
+        "label": label,
+    }
 
-    final = fuse_results(rule_results, ml_results, labels=candidate_labels)
-
-    return JSONResponse({"final_result": final})
+    print("Final Unified Evaluation:", unified_score)
+    return output
