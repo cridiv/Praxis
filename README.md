@@ -1,4 +1,4 @@
-#  Praxis — The Universal Data Classifier
+#  PRAXIS — The Universal Data Classifier
 
 **Praxis** is an intelligent, domain-agnostic data classification system designed to understand, organize, and interpret any kind of data — text, images, audio, or structured input.  
 It’s built to serve as the *foundation layer* for applications that require adaptive, context-aware classification powered by modern AI models.
